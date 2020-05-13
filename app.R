@@ -1,5 +1,6 @@
 library(shiny)
 library(shinyjs)
+library(shinydashboard)
 
 #Functions
 
@@ -18,102 +19,121 @@ smort <- function(a1,a2,b1,b2,c,x){
 
 #Survival functions
 gsurv<- function(a2,b2,x){
-    exp(((exp(a2))/b2)*(1-exp(b2*x)))
+    exp((a2 / b2) * (1 - exp(b2 * x)))
 }
 
 gmsurv<- function(a2,b2,c,x){
-    exp(- c*x + ((exp(a2))/b2)*(1-exp(b2*x)))
+    exp(-c * x - (a2 / b2) * (exp(b2 * x) - 1))
 }
 
 ssurv<- function(a1,a2,b1,b2,c,x){
-    exp(((exp(a1))/b1)*(exp(-b1*x)-1) - c*x + ((exp(a2))/b2)*(1-exp(b2*x)))
+    exp((a1 / b1) * (exp(-b1 * x) - 1) - c * x + (a2 / b2) * (1 - exp(b2 * x)))
 }
 
-ui <- fluidPage(
+header <- dashboardHeader(title = "Survival and Mortality Curves", titleWidth = 350)
+
+sidebar <- dashboardSidebar(
     useShinyjs(),
-    titlePanel(h1("Exploring Mortality models")),
-    sidebarLayout(
-        sidebarPanel(
-            radioButtons("model", "Model",
-                          choices = list("Gompertz"=1,"Gompertz Makeham"=2,"Siler"=3), selected=1),
-            helpText("Adjust the parameter values to see the effect on Mortality rate and Survival probability using the Siler function"),
-            id = "form",
-            sliderInput("a1",
-                        label = "a1 - Mortality rate at birth",
-                        min = -10, max = 10, value = -3.2, step = 0.1),
-            sliderInput("a2",
-                        label = "a2 - Mortality rate at beginning of senesence",
-                        min = -10, max = 10, value = -3.5, step = 0.1),
-            sliderInput("b1",
-                        label = "b1 - Rate of mortality decline as a juvenile",
-                        min = 0.001, max = 10, value = 0.02, step = 0.001),
-            sliderInput("b2",
-                        label = "b2 - Senescent increase in mortality",
-                        min = 0.001, max = 10, value = 0.01, step = 0.001),
-            sliderInput("c",
-                        label = "c - Age independent mortality",
-                        min = -5, max = 5, value = 0.02, step = 0.01),
-            sliderInput("Age",
-                        label = "Age range",
-                        min = 0, max = 100, value = c(0,80)),
-            actionButton("resetAll",
-                         label = "Reset values"),
-                         
-            
-        ),
-        mainPanel(
-            
-            plotOutput("Mortality"),
-            plotOutput("Survival")
-            
-        )
+    sidebarMenu(
+        radioButtons("model", 
+                     label = "Model", choices = c("Gompertz", "Gompertz Makeham", "Siler"),
+                     selected = "Gompertz"),
+        sliderInput("Age",
+                    label = "Age range",
+                    min = 0, max = 100, value = c(0,20)),
+        uiOutput("a1"),
+        sliderInput("a2",
+                    label = "a2 - Scale parameter",
+                    min = 0.001, max = 2.5, value = 0.05, step = 0.01),
+        uiOutput("b1"),
+        sliderInput("b2",
+                    label = "b2 - Senescent rate",
+                    min = 0.001, max = 2, value = 0.02, step = 0.001),
+        uiOutput("c")
     )
 )
-# Define server logic required to draw a histogram
-server <- function(input, output) {
-    if (input$model==1){
-        hide(input$a1)
-    }
-    
-    output$Mortality<-
-    renderPlot({
-        x<- seq(input$Age[1]:input$Age[2])
-        if (input$model==1){
-                mort<-gmort(input$a2,input$b2,x)
-        }
-        if (input$model==2){
-                mort<-gmmort(input$a2, input$b2, input$c,x)
-        }else {
-                mort<-smort(input$a1, input$a2, input$b1, input$b2, input$c,x)
-        }
-        
-        #Plot mortality trajectory
-        plot(mort, type = 'l', xlab = "Age", ylab = "Mortality rate", xlim = c(input$Age[1],input$Age[2]),
-            lwd = 2)
-    })
-    
-    output$Survival<-
-    renderPlot({
-        x<- seq(input$Age[1]:input$Age[2])
-        if (input$model==1){
-            surv<-gsurv(input$a2,input$b2,x)
-        }
-        if (input$model==2){
-            surv<-gmsurv(input$a2, input$b2, input$c,x)
-        }else {
-            surv<-ssurv(input$a1, input$a2, input$b1, input$b2, input$c,x)
-        }
-        
-        plot(surv, type = "l", xlab = "Age", ylab = "Survival", ylim = c(0,1), xlim = c(input$Age[1],input$Age[2]),
-                 lwd = 2)
-        })
-    observeEvent(input$resetAll,{
-        reset("form")
-    })
-    
-    
-    }
 
+body<- dashboardBody(
+    box(title="Mortality Curve h(t)", status = "primary", solidHeader = TRUE,
+        plotOutput("MortalityCurve")),
+    
+    box(title="Survival Curve S(t)", status = "warning", solidHeader = TRUE,
+        plotOutput("SurvivalCurve"))
+)
+
+
+ui <- dashboardPage(skin="blue",
+                    header,
+                    sidebar,
+                    body
+)
+
+
+# Define server logic required to draw a histogram
+server <- function(input, output){
+    
+    output$MortalityCurve<- renderPlot({
+        age<- seq(input$Age[1],input$Age[2])
+        
+        if (input$model=="Gompertz"){
+            mort<- gmort(a2=input$a2, b2=input$b2, x=age)
+        } else if (input$model=="Gompertz Makeham"){
+            mort<- gmmort(a2=input$a2, b2=input$b2, c=input$c, x=age)
+        } else {
+            mort<- smort(a1=input$a1, a2=input$a2, b1=input$b1, b2=input$b2, c=input$c, x=age)
+        }
+        plot(x=age, y=mort, type = "l", col="red", lwd=2)
+    })
+    
+    output$SurvivalCurve<- renderPlot({
+        age<- seq(input$Age[1],input$Age[2])
+        
+        if (input$model=="Gompertz"){
+            surv<- gsurv(a2=input$a2, b2=input$b2, x=age)
+        } else if (input$model=="Gompertz Makeham"){
+            surv<- gmsurv(a2=input$a2, b2=input$b2, c=input$c, x=age)
+        } else {
+            surv<- ssurv(a1=input$a1, a2=input$a2, b1=input$b1, b2=input$b2, c=input$c, x=age)
+        }
+        plot(x=age, y=surv, type = "l", col="blue", lwd=2)
+    })
+    
+    
+    output$a1 <- renderUI({
+        sliderInput("a1",
+                    label = "a1 - Mortality rate at birth",
+                    min = 0.0001, max = 5, value = 3, step = 0.01)
+    })
+    
+    output$b1 <- renderUI({
+        sliderInput("b1",
+                    label = "b1 - Rate of mortality decline as a juvenile",
+                    min = 0.0001, max = 2, value = 0.02, step = 0.001)
+    })
+    
+    output$c <- renderUI({
+        sliderInput("c",
+                    label = "c - Age independent mortality",
+                    min = 0.0001, max = 5, value = 0.02, step = 0.01)
+    })
+    
+    observe(if (input$model=="Gompertz"){
+        shinyjs::hide("a1")
+        shinyjs::hide("b1")
+        shinyjs::hide("c")
+    }else if (input$model=="Gompertz Makeham"){
+        shinyjs::hide("a1")
+        shinyjs::hide("b1")
+        shinyjs::show("c")
+    }else{
+        shinyjs::show("a1")
+        shinyjs::show("b1")
+        shinyjs::show("c")
+    }
+    )
+    
+    
+}
 
 # Run the application 
 shinyApp(ui = ui, server = server)
