@@ -1,0 +1,12 @@
+name: MortalitySurvival_app
+title: MortalitySurvival_app
+username:
+account: dhudson
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2356814
+bundleId: 3344053
+url: https://dhudson.shinyapps.io/MortalitySurvival_app/
+when: 1593701347.53192
+asMultiple: FALSE
+asStatic: FALSE
