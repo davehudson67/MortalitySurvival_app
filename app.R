@@ -36,11 +36,11 @@ sidebar <- dashboardSidebar(
     uiOutput("a1"),
     sliderInput("a2",
                 label = "a2 - Scale parameter",
-                min = 0, max = 2, value = 0.05, step = 0.0001),
+                min = 0, max = 2, value = 0.02856, step = 0.0001),
     uiOutput("b1"),
     sliderInput("b2",
                 label = "b2 - Senescent rate",
-                min = 0, max = 0.15, value = 0.05, step = 0.0001),
+                min = 0, max = 0.15, value = 0.03345, step = 0.0001),
     uiOutput("c")
   )
 )
@@ -111,20 +111,20 @@ server <- function(input, output){
   output$a1 <- renderUI({
   sliderInput("a1",
               label = "a1 - Mortality rate at birth",
-              min = 0.0024, max = 0.1533, value = 0.0183, step = 0.0001)
+              min = 0.0024, max = 0.1533, value = 0.00461, step = 0.0001)
   })
   
   exp(-4)
   output$b1 <- renderUI({
   sliderInput("b1",
               label = "b1 - Rate of mortality decline as a juvenile",
-              min = 0.0001, max = 2, value = 0.5, step = 0.0001)
+              min = 0.0001, max = 2, value = 0.83648, step = 0.0001)
   })
   
   output$c <- renderUI({
   sliderInput("c",
                 label = "c - Age independent mortality",
-                min = 0, max = 0.12, value = 0.02, step = 0.0001)
+                min = 0, max = 0.12, value = 0.0280, step = 0.0001)
   })
   
   observe(if (input$model=="Gompertz"){
